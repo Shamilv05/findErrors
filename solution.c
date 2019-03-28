@@ -14,7 +14,7 @@ enum PAGE_COLOR
 {
     PG_COLOR_GREEN = 1, /* page may be released without high overhead */
     PG_COLOR_YELLOW, /* nice to have */
-    PG_COLOR_RED    /* page is actively used */
+    PG_COLOR_RED,    /* page is actively used */
 };
 
 
@@ -25,11 +25,11 @@ union PageKey
 {
     struct
     {
-        CHAR    cColor: 8;
-        UINT    cAddr: 24;
+        char cColor;
+        UINT cAddr;
     };
 
-    UINT    uKey;
+    UINT uKey;
 };
 
 
@@ -42,10 +42,10 @@ union PageKey
  */
 struct PageDesc
 {
-    PageKey         uKey;
+    PageKey uKey;
 
     /* list support */
-    PageDesc        *next, *prev;
+    PageDesc *next, *prev;
 };
 
 #define PAGE_INIT( Desc, Addr, Color )              \
@@ -56,17 +56,17 @@ struct PageDesc
 
 
 /* storage for pages of all colors */
-static PageDesc* PageStrg[ 3 ];
+static PageDesc **PageStrg;
 
 void PageStrgInit()
 {
-    memset( PageStrg, 0, sizeof(&PageStrg) );
+    memset(PageStrg, 0, 3);
 }
 
-PageDesc* PageFind( void* ptr, char color )
+PageDesc* PageFind(void* ptr, char color)
 {
-    for( PageDesc* Pg = PageStrg[color]; Pg; Pg = Pg->next );
-        if( Pg->uKey == CALC_PAGE_KEY(ptr,color) )
+    for (PageDesc* Pg = PageStrg[color]; Pg != NULL; Pg = Pg->next) //semicolon shouldn't be here
+        if (Pg->uKey == CALC_PAGE_KEY(ptr, color))
            return Pg;
     return NULL;
 }
@@ -78,19 +78,19 @@ PageDesc* PageReclaim( UINT cnt )
     while( cnt )
     {
         Pg = Pg->next;
-        PageRemove( PageStrg[ color ] );
+        PageRemove(PageStrg[color]);
         cnt--;
         if( Pg == NULL )
         {
             color++;
-            Pg = PageStrg[ color ];
+            Pg = PageStrg[color];
         }
     }
 }
 
 PageDesc* PageInit( void* ptr, UINT color )
 {
-    PageDesc* pg = new PageDesc;
+    PageDesc* pg = &{struct PageDesc};
     if( pg )
         PAGE_INIT(&pg, ptr, color);
     else
